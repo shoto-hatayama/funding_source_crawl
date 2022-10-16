@@ -33,8 +33,11 @@ def parse_funding_source_list_page(html,source_name):
 
     soup = BeautifulSoup(html,'html.parser')
 
-    # TODO:サイトごとにセレクタ切り替え必要
-    selector = "table.hojyokin_case tbody tr td > a"
+    # TODO:関数を作成し処理を外に出すか検討
+    if source_name == 'MAFF_SUBSIDY':
+        selector = "table.hojyokin_case tbody tr td > a"
+    elif source_name == 'MAFF_FINANCING':
+        selector = "table.yushi_case tbody tr td > a"
 
     return {
         'funding_source_url_list': [a["href"]for a in soup.select(selector)]#切り替え必要
@@ -76,22 +79,36 @@ def parse_funding_source_detail(source_name,html,url):
         詳細ページのURL
     """
 
-    #TODO:サイトごとにセレクタ切り替え必要
-    selector = ".content p"
+    #TODO:関数を作成し処理を外に出すか検討
+    if source_name in ['MAFF_SUBSIDES','MAFF_FINANCING']:
+        selector = ".content p"
 
     soup = BeautifulSoup(html,'html.parser')
     content = soup.select(selector)
 
-    #TODO:サイトごとに切り替え必要
-    return {
-        'title': soup.select_one(".content h1").get_text(),#補助金名
-        'outline':soup.select_one(".content .datatable tbody tr td").get_text(),#概要
-        'season':content[0].get_text(),#公募時期
-        'rate':content[1].get_text(),#補助率
-        'target':content[2].get_text(),#対象者
-        'remarks':content[3].get_text(),#備考
-        'url':url
-    }
+    if source_name == 'MAFF_SUBSIDES':
+        # 農林水産省補助金情報
+        return {
+            'title': soup.select_one(".content h1").get_text(),#補助金名
+            'outline':soup.select_one(".content .datatable tbody tr td").get_text(),#概要
+            'season':content[0].get_text(),#公募時期
+            'rate':content[1].get_text(),#補助率
+            'target':content[2].get_text(),#対象者
+            'remarks':content[3].get_text(),#備考
+            'url':url
+        }
+    elif source_name == 'MAFF_FINANCING':
+        # 農林水産省融資情報
+        return {
+            'title': soup.select_one(".content h1").get_text(),#融資名
+            'outline':soup.select_one(".content .datatable tbody tr td").get_text(),#概要
+            'target': content[0].get_text(),#公募時期,
+            'interest': content[1].get_text(),#公募時期,
+            'borrowing_limit': content[2].get_text(),#公募時期,
+            'term_of_redemption':content[3].get_text(),#公募時期:
+            'remarks': content[4].get_text(),#公募時期,
+            'url':url
+        }
 
 def crawl_funding_source_list_detail(source_name,url):
     """"
