@@ -34,7 +34,7 @@ def parse_funding_source_list_page(html,source_name):
     soup = BeautifulSoup(html,'html.parser')
 
     # TODO:関数を作成し処理を外に出すか検討
-    if source_name == 'MAFF_SUBSIDY':
+    if source_name == 'MAFF_SUBSIDES':
         selector = "table.hojyokin_case tbody tr td > a"
     elif source_name == 'MAFF_FINANCING':
         selector = "table.yushi_case tbody tr td > a"
@@ -53,7 +53,7 @@ def crawl_funding_source_list_page(source_name,source_url):
         一覧画面のURL
     """
 
-    print("Accessing TO {start_url}...")
+    print(f"Accessing TO {source_url}...")
     session = HTMLSession()
 
     response = session.get(source_url)
@@ -121,7 +121,7 @@ def crawl_funding_source_list_detail(source_name,url):
     """
 
     # 詳細ページにアクセス
-    print("Accessing to {url}")
+    print(f"Accessing to {url}")
     response = requests.get(url)
     response.raise_for_status()
     time.sleep(8)
