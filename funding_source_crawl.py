@@ -34,9 +34,9 @@ def parse_funding_source_list_page(html,source_name):
     soup = BeautifulSoup(html,'html.parser')
 
     # TODO:関数を作成し処理を外に出すか検討
-    if source_name == 'MAFF_SUBSIDES':
+    if source_name == const.MAFF_SUBSIDES:
         selector = "table.hojyokin_case tbody tr td > a"
-    elif source_name == 'MAFF_FINANCING':
+    elif source_name == const.MAFF_FINANCING:
         selector = "table.yushi_case tbody tr td > a"
 
     return {
@@ -80,13 +80,13 @@ def parse_funding_source_detail(source_name,html,url):
     """
 
     #TODO:関数を作成し処理を外に出すか検討
-    if source_name in ['MAFF_SUBSIDES','MAFF_FINANCING']:
+    if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING]:
         selector = ".content p"
 
     soup = BeautifulSoup(html,'html.parser')
     content = soup.select(selector)
 
-    if source_name == 'MAFF_SUBSIDES':
+    if source_name == const.MAFF_SUBSIDES:
         # 農林水産省補助金情報
         return {
             'title': soup.select_one(".content h1").get_text(),#補助金名
@@ -97,7 +97,7 @@ def parse_funding_source_detail(source_name,html,url):
             'remarks':content[3].get_text(),#備考
             'url':url
         }
-    elif source_name == 'MAFF_FINANCING':
+    elif source_name == const.MAFF_FINANCING:
         # 農林水産省融資情報
         return {
             'title': soup.select_one(".content h1").get_text(),#融資名
@@ -152,8 +152,8 @@ def crawl_funding_source_add(source_name,source_url):
 
 
 source_names = {
-    'MAFF_SUBSIDES':"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab2&nen=A7&area=00",
-    'MAFF_FINANCING':"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab3&riyo=MA%2CMB%2CMC%2CMD%2CME%2CMF%2CMG&area=00"
+    const.MAFF_SUBSIDES:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab2&nen=A7&area=00",
+    const.MAFF_FINANCING:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab3&riyo=MA%2CMB%2CMC%2CMD%2CME%2CMF%2CMG&area=00"
 }
 
 for source_name,source_url in source_names.items():
