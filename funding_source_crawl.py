@@ -1,5 +1,6 @@
 import time
 
+from urllib.parse import urljoin
 import const
 import requests
 from bs4 import BeautifulSoup
@@ -38,6 +39,31 @@ def parse_funding_source_list_page(html,source_name):
         selector = "table.hojyokin_case tbody tr td > a"
     elif source_name == const.MAFF_FINANCING:
         selector = "table.yushi_case tbody tr td > a"
+    elif source_name == const.MAFF_PUBLIC_OFFERING:
+        selector = "table.datatable tbody tr td > a[href]"
+        base_url = "https://www.maff.go.jp/j/supply/hozyo/"
+
+        crawl_data = []
+        array_index = 0
+        for tr in soup.select("table.datatable tbody tr"):
+
+            add_crawl_data =[]
+            for val in tr.select("td"):
+                add_crawl_data.append(val.text)
+
+                # hrefが存在するタグの場合のみリンク作成
+                detail_link = val.select_one("td a[href]")
+                if detail_link :
+                    # 公募詳細URLの作成
+                    add_crawl_data.append(urljoin(base_url,detail_link['href']))
+
+            # 空の配列を追加しない
+            if not add_crawl_data:
+                continue
+
+            crawl_data.append(add_crawl_data)
+
+            array_index += 1
 
     return {
         'funding_source_url_list': [a["href"]for a in soup.select(selector)]#切り替え必要
@@ -154,6 +180,7 @@ def crawl_funding_source_add(source_name,source_url):
 source_names = {
     const.MAFF_SUBSIDES:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab2&nen=A7&area=00",
     const.MAFF_FINANCING:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab3&riyo=MA%2CMB%2CMC%2CMD%2CME%2CMF%2CMG&area=00"
+    const.MAFF_PUBLIC_OFFERING:"https://www.maff.go.jp/j/supply/hozyo/"
 }
 
 for source_name,source_url in source_names.items():
