@@ -1,5 +1,8 @@
 import time
 
+import unicodedata
+import re
+import datetime
 from urllib.parse import urljoin
 import const
 import requests
@@ -49,7 +52,8 @@ def parse_funding_source_list_page(html,source_name):
 
             add_crawl_data =[]
             for val in tr.select("td"):
-                add_crawl_data.append(val.text)
+
+                add_crawl_data.append(japanese_colendar_to_ad(val.text))
 
                 # hrefが存在するタグの場合のみリンク作成
                 detail_link = val.select_one("td a[href]")
@@ -68,6 +72,38 @@ def parse_funding_source_list_page(html,source_name):
     return {
         'funding_source_url_list': [a["href"]for a in soup.select(selector)]#切り替え必要
     }
+
+def japanese_colendar_to_ad(text):
+    """
+    和暦を西暦のdatetimeに変換数
+
+    Parameters
+    -----------
+    test:string
+        和暦の年月日
+    -----------
+    """
+
+    # 正規化
+    normalized_text = unicodedata.normalize("NFKC",text)
+
+    # 年月日抽出
+    pattern = r"(?P<era>{eraList})(?P<year>[0-9]{{1,2}}|元)年(?P<month>[0-9]{{1,2}})月(?P<day>[0-9]{{1,2}})日".format(eraList="|".join( const.ERADICT.keys()))
+    date = re.search(pattern,normalized_text)
+
+    # 秀出できなければ正規化したテキストを返す
+    if date is None:
+        return normalized_text
+
+    # 年を変換
+    for era,start_year in const.ERADICT.items():
+        if date.group("era") == era:
+            if date.group("year") == "元":
+                year = start_year
+            else:
+                year = start_year + int(date.group("year")) -1
+
+    return datetime.date(year,int(date.group("month")),int(date.group("day")))
 
 def crawl_funding_source_list_page(source_name,source_url):
     """"
