@@ -71,6 +71,12 @@ def parse_funding_source_list_page(html,source_name):
             # 辞書型の場合、階層作って保存が複雑になるため、list型に保存
             crawl_data.append(add_crawl_data)
 
+        for key,val in enumerate(crawl_data):
+
+            # 締切過ぎたものは全て削除
+            if val["end_date"] < datetime.date.today():
+                del crawl_data[key:]
+
         return crawl_data
 
     return {
