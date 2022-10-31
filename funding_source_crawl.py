@@ -47,27 +47,31 @@ def parse_funding_source_list_page(html,source_name):
         base_url = "https://www.maff.go.jp/j/supply/hozyo/"
 
         crawl_data = []
-        array_index = 0
         for tr in soup.select("table.datatable tbody tr"):
 
-            add_crawl_data =[]
+            add_crawl_data ={}
+            index = 0
             for val in tr.select("td"):
 
-                add_crawl_data.append(japanese_colendar_to_ad(val.text))
+                # frestore保存用の項目作成と和暦の変換
+                add_crawl_data[const.OFFERRING_COLLECTION_KEY[index]] = japanese_colendar_to_ad(val.text)
 
                 # hrefが存在するタグの場合のみリンク作成
                 detail_link = val.select_one("td a[href]")
                 if detail_link :
                     # 公募詳細URLの作成
-                    add_crawl_data.append(urljoin(base_url,detail_link['href']))
+                    add_crawl_data['url'] = urljoin(base_url,detail_link['href'])
+
+                index +=1
 
             # 空の配列を追加しない
             if not add_crawl_data:
                 continue
 
+            # 辞書型の場合、階層作って保存が複雑になるため、list型に保存
             crawl_data.append(add_crawl_data)
 
-            array_index += 1
+        return crawl_data
 
     return {
         'funding_source_url_list': [a["href"]for a in soup.select(selector)]#切り替え必要

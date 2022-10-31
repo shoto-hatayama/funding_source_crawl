@@ -14,3 +14,10 @@ ERADICT = {
     "平成": 1989,
     "令和": 2019,
 }
+
+#
+OFFERRING_COLLECTION_KEY = [
+    'begin_date',
+    'end_date',
+    'public_offering_name'
+]
