@@ -42,42 +42,6 @@ def parse_funding_source_list_page(html,source_name):
         selector = "table.hojyokin_case tbody tr td > a"
     elif source_name == const.MAFF_FINANCING:
         selector = "table.yushi_case tbody tr td > a"
-    elif source_name == const.MAFF_PUBLIC_OFFERING:
-        selector = "table.datatable tbody tr td > a[href]"
-        base_url = "https://www.maff.go.jp/j/supply/hozyo/"
-
-        crawl_data = []
-        for tr in soup.select("table.datatable tbody tr"):
-
-            add_crawl_data ={}
-            index = 0
-            for val in tr.select("td"):
-
-                # frestore保存用の項目作成と和暦の変換
-                add_crawl_data[const.OFFERRING_COLLECTION_KEY[index]] = japanese_colendar_to_ad(val.text)
-
-                # hrefが存在するタグの場合のみリンク作成
-                detail_link = val.select_one("td a[href]")
-                if detail_link :
-                    # 公募詳細URLの作成
-                    add_crawl_data['url'] = urljoin(base_url,detail_link['href'])
-
-                index +=1
-
-            # 空の配列を追加しない
-            if not add_crawl_data:
-                continue
-
-            # 辞書型の場合、階層作って保存が複雑になるため、list型に保存
-            crawl_data.append(add_crawl_data)
-
-        for key,val in enumerate(crawl_data):
-
-            # 締切過ぎたものは全て削除
-            if val["end_date"] < datetime.date.today():
-                del crawl_data[key:]
-
-        return crawl_data
 
     return {
         'funding_source_url_list': [a["href"]for a in soup.select(selector)]#切り替え必要
@@ -113,7 +77,7 @@ def japanese_colendar_to_ad(text):
             else:
                 year = start_year + int(date.group("year")) -1
 
-    return datetime.date(year,int(date.group("month")),int(date.group("day")))
+    return datetime.datetime(year,int(date.group("month")),int(date.group("day")))
 
 def crawl_funding_source_list_page(source_name,source_url):
     """"
@@ -135,6 +99,7 @@ def crawl_funding_source_list_page(source_name,source_url):
     time.sleep(8)
 
     page_data = parse_funding_source_list_page(response.html.html,source_name)
+
     funding_source_url_list = page_data["funding_source_url_list"]
 
     return funding_source_url_list
@@ -212,20 +177,86 @@ def crawl_funding_source_add(source_name,source_url):
 
     print("Start crawl!")
 
-    funding_source_url_list = crawl_funding_source_list_page(source_name,source_url)
-
     db = firestore_connection()
-    for funding_source_url in funding_source_url_list:
-        funding_source_data = crawl_funding_source_list_detail(source_name,funding_source_url)
-        doc = db.collection(source_name)
-        doc.add(funding_source_data)
+    if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING]:
+        funding_source_url_list = crawl_funding_source_list_page(source_name,source_url)
+        for funding_source_url in funding_source_url_list:
+            funding_source_data = crawl_funding_source_list_detail(source_name,funding_source_url)
+            doc = db.collection(source_name)
+            doc.add(funding_source_data)
+    elif source_name == const.MAFF_PUBLIC_OFFERING:
+        public_offering_list = crawl_public_offering_list(source_url)
+        for public_offering_data in public_offering_list.values():
+            doc = db.collection(source_name)
+            doc.add(public_offering_data)
 
     print("completed crawl!")
 
+def crawl_public_offering_list(source_url):
+    """
+     公募ページから開始日・終了日・公募名・urlを取得
+
+     Parametrers
+     -----------
+     source_url
+        ページのURL
+    """
+
+    print(f"Accessing TO {source_url}...")
+    session = HTMLSession()
+
+    response = session.get(source_url)
+
+    response.html.render()
+
+    time.sleep(8)
+
+    soup = BeautifulSoup(response.html.html,'html.parser')
+
+    base_url = "https://www.maff.go.jp/j/supply/hozyo/"
+
+    crawl_data = []
+    for tr in soup.select("table.datatable tbody tr"):
+
+        add_crawl_data ={}
+        index = 0
+        for val in tr.select("td"):
+
+            # frestore保存用の項目作成と和暦の変換
+            add_crawl_data[const.OFFERRING_COLLECTION_KEY[index]] = japanese_colendar_to_ad(val.text)
+            # print(add_crawl_data)
+            # sys.exit()
+
+            # hrefが存在するタグの場合のみリンク作成
+            detail_link = val.select_one("td a[href]")
+            if detail_link :
+                # 公募詳細URLの作成
+                add_crawl_data['url'] = urljoin(base_url,detail_link['href'])
+
+            index +=1
+
+        # 空の配列を追加しない
+        if not add_crawl_data:
+            continue
+
+        # 辞書型の場合、階層作って保存が複雑になるため、list型に保存
+        crawl_data.append(add_crawl_data)
+
+    after_crawl_data = {}
+    for key,before_crawl_data in enumerate(crawl_data) :
+
+        # 不要な公募名の情報が取得されていれば処理を抜ける
+        if type(before_crawl_data['end_date']) is str: break
+
+        # 期限内のものだけ取得
+        if before_crawl_data["end_date"] > datetime.datetime.today():
+            after_crawl_data[key] = before_crawl_data
+
+    return after_crawl_data
 
 source_names = {
     const.MAFF_SUBSIDES:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab2&nen=A7&area=00",
-    const.MAFF_FINANCING:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab3&riyo=MA%2CMB%2CMC%2CMD%2CME%2CMF%2CMG&area=00"
+    const.MAFF_FINANCING:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab3&riyo=MA%2CMB%2CMC%2CMD%2CME%2CMF%2CMG&area=00",
     const.MAFF_PUBLIC_OFFERING:"https://www.maff.go.jp/j/supply/hozyo/"
 }
 
