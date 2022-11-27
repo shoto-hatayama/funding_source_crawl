@@ -93,17 +93,34 @@ def crawl_funding_source_list_page(source_name,source_url):
     """
 
     print(f"Accessing TO {source_url}...")
-    session = HTMLSession()
+    if source_name == const.JNET21_SUBSIDES_AND_FINANCING:
+        # JNET21はフォームのクリックにseleniumを使っているため処理を分ける
+        click_target = [
+            '//*[@id="categorySelect"]/div/label[1]',#「補助金・助成金・融資」
+            '//*[@id="searchForm"]/div[9]/button[1]' #「検索実行」
+        ]
+        page_source = source_of_page_clicked(source_url,click_target)
+    else:
+        session = HTMLSession()
 
-    response = session.get(source_url)
+        response = session.get(source_url)
 
-    response.html.render()
+        response.html.render()
+        page_source = response.html.html
 
     time.sleep(8)
 
-    page_data = parse_funding_source_list_page(response.html.html,source_name)
-
+    page_data = parse_funding_source_list_page(page_source,source_name)
     funding_source_url_list = page_data["funding_source_url_list"]
+
+    while page_data["next_page_link"]:
+        # MEMO:現状JNET21のみこのループに入るためbase_urlはここに直書き
+        base_url = "https://j-net21.smrj.go.jp/"
+        print(f"Accessing TO {urljoin(base_url,page_data['next_page_link'])}")
+        page_source = requests.get(urljoin(base_url,page_data["next_page_link"])).text
+        time.sleep(10)
+        page_data = parse_funding_source_list_page(page_source,source_name)
+        funding_source_url_list += page_data["funding_source_url_list"]
 
     return funding_source_url_list
 
@@ -181,7 +198,7 @@ def crawl_funding_source_add(source_name,source_url):
     print("Start crawl!")
 
     db = firestore_connection()
-    if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING]:
+    if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING,const.JNET21_SUBSIDES_AND_FINANCING]:
         funding_source_url_list = crawl_funding_source_list_page(source_name,source_url)
         for funding_source_url in funding_source_url_list:
             funding_source_data = crawl_funding_source_list_detail(source_name,funding_source_url)
