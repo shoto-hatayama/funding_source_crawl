@@ -37,17 +37,27 @@ def parse_funding_source_list_page(html,source_name):
     html:string
         一覧画面のURL
     """
-
     soup = BeautifulSoup(html,'html.parser')
 
     # TODO:関数を作成し処理を外に出すか検討
+    # JNEX21から取得するリンクが相対リンクのため他と処理を分ける
+    next_page_link = None
+    if source_name == const.JNET21_SUBSIDES_AND_FINANCING:
+        selector = "main#contents article div.HL-result ul.HL-resultList li div.title-meta > a"
+        next_page_link = soup.select_one("div.HL-result .HL-pagenation .nextBox li > a[href]")
+        return {
+            'funding_source_url_list': [urljoin('https://j-net21.smrj.go.jp',a["href"])for a in soup.select(selector)],
+            'next_page_link': next_page_link["href"] if next_page_link else None
+        }
+
     if source_name == const.MAFF_SUBSIDES:
         selector = "table.hojyokin_case tbody tr td > a"
     elif source_name == const.MAFF_FINANCING:
         selector = "table.yushi_case tbody tr td > a"
 
     return {
-        'funding_source_url_list': [a["href"]for a in soup.select(selector)]#切り替え必要
+        'funding_source_url_list': [a["href"]for a in soup.select(selector)],
+        'next_page_link': next_page_link["href"] if next_page_link else None
     }
 
 def japanese_colendar_to_ad(text):
