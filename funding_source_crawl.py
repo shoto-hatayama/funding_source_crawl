@@ -7,6 +7,9 @@ from urllib.parse import urljoin
 import const
 import requests
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 from requests_html import HTMLSession
 from firebase_admin import firestore
 import firebase_admin
@@ -191,6 +194,45 @@ def crawl_funding_source_add(source_name,source_url):
             doc.add(public_offering_data)
 
     print("completed crawl!")
+
+def source_of_page_clicked(url,xpath):
+    """
+     ページ内部の要素をクリック後、ソースを取得
+
+     Parametrers
+     -----------
+     url
+        ページのURL
+     xpath
+        対象要素のxpath
+    """
+
+    driver_path = 'chromedriver'
+    options = Options()
+    options.add_argument('--disable-gpu')#GPUハードウェアアクセラレーションを無効
+    options.add_argument('--disable-extensions')#全ての拡張機能を無効
+    options.add_argument('--proxy-server="direct://"')#プロキシ経由せず直接接続
+    options.add_argument('--proxy-bypass-list=*')#プロキシサーバー経由しない
+    options.add_argument('--start-maximized')#初期のウィンドウサイズ最大化
+    # options.add_argument('--headless')#ヘッドレスモードで起動
+
+    driver = webdriver.Chrome(executable_path=driver_path,chrome_options=options)
+    driver.get(url)
+
+
+    # フォームの「補助金・助成金・融資」を選択
+    for val in xpath:
+        element = driver.find_element_by_xpath(val)
+        element.click()
+
+    source = driver.page_source
+    # ブラウザとウィンドウを共に閉じる
+    driver.close
+    driver.quit
+
+    return source
+
+
 
 def crawl_public_offering_list(source_url):
     """
