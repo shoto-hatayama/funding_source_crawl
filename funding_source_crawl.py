@@ -1,5 +1,4 @@
 import time
-
 import unicodedata
 import re
 import datetime
@@ -26,7 +25,7 @@ def firestore_connection():
     cred = credentials.Certificate(JSON_PATH)
     firebase_admin.initialize_app(cred)
 
-    return firestore.client()
+    return firestore.client().from_service_account_json(JSON_PATH)
 
 def parse_funding_source_list_page(html,source_name):
     """"
@@ -128,7 +127,7 @@ def crawl_funding_source_list_page(source_name,source_url):
         base_url = "https://j-net21.smrj.go.jp/"
         print(f"Accessing TO {urljoin(base_url,page_data['next_page_link'])}")
         page_source = requests.get(urljoin(base_url,page_data["next_page_link"])).text
-        time.sleep(10)
+        time.sleep(8)
         page_data = parse_funding_source_list_page(page_source,source_name)
         funding_source_url_list += page_data["funding_source_url_list"]
 
@@ -242,6 +241,7 @@ def crawl_funding_source_add(source_name,source_url):
     print("Start crawl!")
 
     db = firestore_connection()
+    deleted_collection(db,source_name)
     if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING,const.JNET21_SUBSIDES_AND_FINANCING]:
         funding_source_url_list = crawl_funding_source_list_page(source_name,source_url)
         for funding_source_url in funding_source_url_list:
@@ -255,6 +255,19 @@ def crawl_funding_source_add(source_name,source_url):
             doc.add(public_offering_data)
 
     print("completed crawl!")
+
+def deleted_collection(db,collection_name):
+    """
+    指定した名前のコレクションを削除する
+
+    Parametrers:
+        db : firestoreの接続情報
+        collection_name string: コレクションの名前
+    """
+    collections = db.collection(collection_name).stream()
+    for collection in collections:
+        firestore_document = db.collection(collection_name).document(collection.id)
+        firestore_document.delete()
 
 def source_of_page_clicked(url,xpath):
     """
@@ -275,7 +288,7 @@ def source_of_page_clicked(url,xpath):
     options.add_argument('--proxy-server="direct://"')#プロキシ経由せず直接接続
     options.add_argument('--proxy-bypass-list=*')#プロキシサーバー経由しない
     options.add_argument('--start-maximized')#初期のウィンドウサイズ最大化
-    # options.add_argument('--headless')#ヘッドレスモードで起動
+    options.add_argument('--headless')#ヘッドレスモードで起動
 
     driver = webdriver.Chrome(executable_path=driver_path,chrome_options=options)
     driver.get(url)
@@ -380,8 +393,6 @@ def crawl_public_offering_list(source_url):
 
             # frestore保存用の項目作成と和暦の変換
             add_crawl_data[const.OFFERRING_COLLECTION_KEY[index]] = japanese_colendar_to_ad(val.text)
-            # print(add_crawl_data)
-            # sys.exit()
 
             # hrefが存在するタグの場合のみリンク作成
             detail_link = val.select_one("td a[href]")
@@ -413,7 +424,8 @@ def crawl_public_offering_list(source_url):
 source_names = {
     const.MAFF_SUBSIDES:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab2&nen=A7&area=00",
     const.MAFF_FINANCING:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab3&riyo=MA%2CMB%2CMC%2CMD%2CME%2CMF%2CMG&area=00",
-    const.MAFF_PUBLIC_OFFERING:"https://www.maff.go.jp/j/supply/hozyo/"
+    const.MAFF_PUBLIC_OFFERING:"https://www.maff.go.jp/j/supply/hozyo/",
+    const.JNET21_SUBSIDES_AND_FINANCING:"https://j-net21.smrj.go.jp/snavi/articles"
 }
 
 for source_name,source_url in source_names.items():
