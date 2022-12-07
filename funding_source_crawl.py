@@ -176,6 +176,40 @@ def parse_funding_source_detail(source_name,html,url):
             'remarks': content[4].get_text(),#公募時期,
             'url':url
         }
+    elif source_name == const.JNET21_SUBSIDES_AND_FINANCING:
+        #JNET21補助金公募情報
+
+        recruitment_period = soup.select_one("article div.section .HL-desc dd")
+        before_marge_date = date_split(recruitment_period)
+
+        before_add_data_to_firestore = {
+            'industry':'',#業種
+            'executing_agency':'',#実施機関
+            'area':'',#地域
+            'type':''#種類
+        }
+        for hldesc in soup.select('article section .HL-desc'):
+            hldesc_item_label = hldesc.select_one('dt').get_text()
+            hldesc_item_data = hldesc.select_one('dd').get_text()
+            try:
+                # 取得しない項目はkeyに存在しないためエラーさせている
+                key = const.JNET21_FIRESTORE_KEY[hldesc_item_label]
+                before_add_data_to_firestore[key] = hldesc_item_data
+            except:
+                continue
+
+        merge_add_data_to_firestore = {
+            'title':soup.select_one("article h1").get_text(),
+            'executing_agency_info':soup.select_one("article section p").get_text(),
+            'detail_url_name':soup.select_one("article section ul li a").get_text(),
+            'detail_url':soup.select_one("article section ul li > a[href]").get('href')
+        }
+
+        return dict(
+            **before_marge_date,
+            **before_add_data_to_firestore,
+            **merge_add_data_to_firestore
+            )
 
 def crawl_funding_source_list_detail(source_name,url):
     """"
@@ -260,12 +294,65 @@ def source_of_page_clicked(url,xpath):
     return source
 
 
+def date_split(recruitment_period):
+    """
+    波ダッシュで区切られた年月日をstart_dateとend_dateに分ける
+    Parameter:
+        recruitment_period String : 波ダッシュで区切られた年月日
+
+    Returns:
+        before_merge_date dict: 開始日と終了日
+    """
+    # 融資情報で募集期間がない場合があるためNoneで弾く
+    if recruitment_period == None:
+        return {
+            "start_date":"",
+            "end_date":""
+        }
+
+    normalized_text = unicodedata.normalize("NFKC",recruitment_period.get_text())
+
+    # 取得先のサイトで開始日または終了日を「〜」で表現している
+    # 「〜」の位置で開始日か終了日を判定
+    if normalized_text.find("~") == 0:
+        # 開始日だけ指定されているケース
+        before_marge_date ={
+            "start_date":converted_datetime(normalized_text),
+            "end_date":"~"
+        }
+    elif normalized_text.find("~") == 11 and len(normalized_text.split('~')) == 1:
+        # 終了日だけ指定されているケース
+        before_marge_date ={
+            "start_date":"~",
+            "end_date":converted_datetime(normalized_text),
+        }
+
+    splited_date = normalized_text.split("~")
+    before_marge_date = {
+        "start_date":converted_datetime(splited_date[0]),
+        "end_date":converted_datetime(splited_date[len(splited_date)-1])
+    }
+
+    return before_marge_date
+
+def converted_datetime(date):
+    """
+    XXXX年XX月XX日形式の日付をdatetimeに変換する
+
+    Parameters:
+        date String: XXXX年XX月XX日の日付
+    """
+
+    pattern = r"(?P<year>[0-9]{4})年(?P<month>[0-9]{1,2})月(?P<day>[0-9]{1,2})日"
+    redate = re.search(pattern,date)
+
+    return datetime.datetime(int(redate.group('year')),int(redate.group('month')),int(redate.group('day')))
 
 def crawl_public_offering_list(source_url):
     """
      公募ページから開始日・終了日・公募名・urlを取得
 
-     Parametrers
+     Parameter
      -----------
      source_url
         ページのURL
