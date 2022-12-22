@@ -5,6 +5,7 @@ import datetime
 from urllib.parse import urljoin
 import const
 import requests
+import logging
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -101,7 +102,7 @@ def crawl_funding_source_list_page(source_name,source_url):
         一覧画面のURL
     """
 
-    print(f"Accessing TO {source_url}...")
+    logging.info(f"Accessing TO {source_url}...")
     if source_name == const.JNET21_SUBSIDES_AND_FINANCING:
         # JNET21はフォームのクリックにseleniumを使っているため処理を分ける
         click_target = [
@@ -125,7 +126,7 @@ def crawl_funding_source_list_page(source_name,source_url):
     while page_data["next_page_link"]:
         # MEMO:現状JNET21のみこのループに入るためbase_urlはここに直書き
         base_url = "https://j-net21.smrj.go.jp/"
-        print(f"Accessing TO {urljoin(base_url,page_data['next_page_link'])}")
+        logging.info(f"Accessing TO {urljoin(base_url,page_data['next_page_link'])}")
         page_source = requests.get(urljoin(base_url,page_data["next_page_link"])).text
         time.sleep(8)
         page_data = parse_funding_source_list_page(page_source,source_name)
@@ -221,7 +222,7 @@ def crawl_funding_source_list_detail(source_name,url):
     """
 
     # 詳細ページにアクセス
-    print(f"Accessing to {url}")
+    logging.info(f"Accessing to {url}")
     response = requests.get(url)
     response.raise_for_status()
     time.sleep(8)
@@ -238,23 +239,30 @@ def crawl_funding_source_add(source_name,source_url):
         一覧画面のURL
     """
 
-    print("Start crawl!")
-
-    db = firestore_connection()
-    deleted_collection(db,source_name)
-    if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING,const.JNET21_SUBSIDES_AND_FINANCING]:
-        funding_source_url_list = crawl_funding_source_list_page(source_name,source_url)
-        for funding_source_url in funding_source_url_list:
-            funding_source_data = crawl_funding_source_list_detail(source_name,funding_source_url)
-            doc = db.collection(source_name)
-            doc.add(funding_source_data)
-    elif source_name == const.MAFF_PUBLIC_OFFERING:
-        public_offering_list = crawl_public_offering_list(source_url)
-        for public_offering_data in public_offering_list.values():
-            doc = db.collection(source_name)
-            doc.add(public_offering_data)
-
-    print("completed crawl!")
+    logging.basicConfig(
+        filename="log.txt",
+        level=logging.INFO,
+        format="%(asctime)s - %(message)s",
+        datefmt="%m/%d/%Y %I:%M:%S %p"
+    )
+    logging.info("Start crawl")
+    try:
+        db = firestore_connection()
+        deleted_collection(db,source_name)
+        if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING,const.JNET21_SUBSIDES_AND_FINANCING]:
+            funding_source_url_list = crawl_funding_source_list_page(source_name,source_url)
+            for funding_source_url in funding_source_url_list:
+                funding_source_data = crawl_funding_source_list_detail(source_name,funding_source_url)
+                doc = db.collection(source_name)
+                doc.add(funding_source_data)
+        elif source_name == const.MAFF_PUBLIC_OFFERING:
+            public_offering_list = crawl_public_offering_list(source_url)
+            for public_offering_data in public_offering_list.values():
+                doc = db.collection(source_name)
+                doc.add(public_offering_data)
+    except:
+        logging.error("エラーが発生しました。",exc_info=True)
+    logging.info("completed crawl!")
 
 def deleted_collection(db,collection_name):
     """
@@ -371,7 +379,7 @@ def crawl_public_offering_list(source_url):
         ページのURL
     """
 
-    print(f"Accessing TO {source_url}...")
+    logging.info(f"Accessing TO {source_url}...")
     session = HTMLSession()
 
     response = session.get(source_url)
