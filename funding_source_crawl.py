@@ -14,7 +14,6 @@ from requests_html import HTMLSession
 from firebase_admin import firestore
 import firebase_admin
 from firebase_admin import credentials
-from firebase_admin import db
 
 
 def firestore_connection():
@@ -115,7 +114,7 @@ def crawl_funding_source_list_page(source_name,source_url):
 
         response = session.get(source_url)
 
-        response.html.render()
+        response.html.render(timeout=20)
         page_source = response.html.html
 
     time.sleep(8)
@@ -146,12 +145,13 @@ def parse_funding_source_detail(source_name,html,url):
         詳細ページのURL
     """
 
+    soup = BeautifulSoup(html,'html.parser')
+
     #TODO:関数を作成し処理を外に出すか検討
     if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING]:
         selector = ".content p"
+        content = soup.select(selector)
 
-    soup = BeautifulSoup(html,'html.parser')
-    content = soup.select(selector)
 
     if source_name == const.MAFF_SUBSIDES:
         # 農林水産省補助金情報
@@ -229,7 +229,7 @@ def crawl_funding_source_list_detail(source_name,url):
     # HTMLからデータを取得する
     return parse_funding_source_detail(source_name,response.text,url)
 
-def crawl_funding_source_add(source_name,source_url):
+def crawl_funding_source_add(source_name,source_url,db):
     """
     各サイトの補助金・融資情報をfirestoreに保存する
 
@@ -247,7 +247,6 @@ def crawl_funding_source_add(source_name,source_url):
     )
     logging.info("Start crawl")
     try:
-        db = firestore_connection()
         deleted_collection(db,source_name)
         if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING,const.JNET21_SUBSIDES_AND_FINANCING]:
             funding_source_url_list = crawl_funding_source_list_page(source_name,source_url)
@@ -336,17 +335,19 @@ def date_split(recruitment_period):
     # 取得先のサイトで開始日または終了日を「〜」で表現している
     # 「〜」の位置で開始日か終了日を判定
     if normalized_text.find("~") == 0:
-        # 開始日だけ指定されているケース
-        before_marge_date ={
-            "start_date":converted_datetime(normalized_text),
-            "end_date":"~"
-        }
-    elif normalized_text.find("~") == 11 and len(normalized_text.split('~')) == 1:
         # 終了日だけ指定されているケース
         before_marge_date ={
             "start_date":"~",
             "end_date":converted_datetime(normalized_text),
         }
+        return before_marge_date
+    elif normalized_text.find("~") == 11 and len(normalized_text.split('~')) == 1:
+        # 開始日だけ指定されているケース
+        before_marge_date ={
+            "start_date":converted_datetime(normalized_text),
+            "end_date":"~"
+        }
+        return before_marge_date
 
     splited_date = normalized_text.split("~")
     before_marge_date = {
@@ -436,5 +437,6 @@ source_names = {
     const.JNET21_SUBSIDES_AND_FINANCING:"https://j-net21.smrj.go.jp/snavi/articles"
 }
 
+db = firestore_connection()
 for source_name,source_url in source_names.items():
-    crawl_funding_source_add(source_name,source_url)
+    crawl_funding_source_add(source_name,source_url,db)
