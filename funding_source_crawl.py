@@ -224,6 +224,10 @@ def crawl_funding_source_list_detail(source_name,url):
     # 詳細ページにアクセス
     logging.info(f"Accessing to {url}")
     response = requests.get(url)
+    # ページが存在しない場合がある
+    if response.status_code != 200:
+        return False
+
     response.raise_for_status()
     time.sleep(8)
     # HTMLからデータを取得する
@@ -252,6 +256,7 @@ def crawl_funding_source_add(source_name,source_url,db):
             funding_source_url_list = crawl_funding_source_list_page(source_name,source_url)
             for funding_source_url in funding_source_url_list:
                 funding_source_data = crawl_funding_source_list_detail(source_name,funding_source_url)
+                if not funding_source_data: continue
                 doc = db.collection(source_name)
                 doc.add(funding_source_data)
         elif source_name == const.MAFF_PUBLIC_OFFERING:
