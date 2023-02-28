@@ -332,8 +332,8 @@ def date_split(recruitment_period):
     # 融資情報で募集期間がない場合があるためNoneで弾く
     if recruitment_period == None:
         return {
-            "start_date":"",
-            "end_date":""
+            "start_date":datetime.datetime(2000,1,1),
+            "end_date":datetime.datetime(2000,1,1)
         }
 
     normalized_text = unicodedata.normalize("NFKC",recruitment_period.get_text())
@@ -343,7 +343,7 @@ def date_split(recruitment_period):
     if normalized_text.find("~") == 0:
         # 終了日だけ指定されているケース
         before_marge_date ={
-            "start_date":"~",
+            "start_date":datetime.datetime(2000,1,1),
             "end_date":converted_datetime(normalized_text),
         }
         return before_marge_date
@@ -351,7 +351,7 @@ def date_split(recruitment_period):
         # 開始日だけ指定されているケース
         before_marge_date ={
             "start_date":converted_datetime(normalized_text),
-            "end_date":"~"
+            "end_date":datetime.datetime(2000,1,1)
         }
         return before_marge_date
 
