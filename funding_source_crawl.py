@@ -340,6 +340,7 @@ def date_split(recruitment_period):
 
     # 取得先のサイトで開始日または終了日を「〜」で表現している
     # 「〜」の位置で開始日か終了日を判定
+    repattern = re.compile(".*~$")
     if normalized_text.find("~") == 0:
         # 終了日だけ指定されているケース
         before_marge_date ={
@@ -347,7 +348,7 @@ def date_split(recruitment_period):
             "end_date":converted_datetime(normalized_text),
         }
         return before_marge_date
-    elif normalized_text.find("~") == 11 and len(normalized_text.split('~')) == 1:
+    elif normalized_text.find("~") == 11 and repattern.match(normalized_text):
         # 開始日だけ指定されているケース
         before_marge_date ={
             "start_date":converted_datetime(normalized_text),
