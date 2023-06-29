@@ -15,6 +15,7 @@ from requests_html import HTMLSession
 from firebase_admin import firestore
 import firebase_admin
 from firebase_admin import credentials
+from date_formatter import DateFormatter
 
 
 def firestore_connection():
@@ -341,41 +342,29 @@ def date_split(recruitment_period):
     # 取得先のサイトで開始日または終了日を「〜」で表現している
     # 「〜」の位置で開始日か終了日を判定
     repattern = re.compile(".*~$")
+    date_formatter = DateFormatter(normalized_text)
     if normalized_text.find("~") == 0:
         # 終了日だけ指定されているケース
         before_marge_date ={
             "start_date":datetime.datetime(2000,1,1),
-            "end_date":converted_datetime(normalized_text),
+            "end_date":date_formatter.converted_datetime(),
         }
         return before_marge_date
     elif normalized_text.find("~") == 11 and repattern.match(normalized_text):
         # 開始日だけ指定されているケース
         before_marge_date ={
-            "start_date":converted_datetime(normalized_text),
+            "start_date":date_formatter.converted_datetime(),
             "end_date":datetime.datetime(2000,1,1)
         }
         return before_marge_date
 
     splited_date = normalized_text.split("~")
     before_marge_date = {
-        "start_date":converted_datetime(splited_date[0]),
-        "end_date":converted_datetime(splited_date[len(splited_date)-1])
+        "start_date":DateFormatter(splited_date[0]).converted_datetime(),
+        "end_date":DateFormatter(splited_date[len(splited_date)-1]).converted_datetime()
     }
 
     return before_marge_date
-
-def converted_datetime(date):
-    """
-    XXXX年XX月XX日形式の日付をdatetimeに変換する
-
-    Parameters:
-        date String: XXXX年XX月XX日の日付
-    """
-
-    pattern = r"(?P<year>[0-9]{4})年(?P<month>[0-9]{1,2})月(?P<day>[0-9]{1,2})日"
-    redate = re.search(pattern,date)
-
-    return datetime.datetime(int(redate.group('year')),int(redate.group('month')),int(redate.group('day')))
 
 def crawl_public_offering_list(source_url):
     """
