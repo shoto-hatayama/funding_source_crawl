@@ -245,7 +245,7 @@ def crawl_funding_source_add(source_name,source_url,db):
     """
 
     logging.basicConfig(
-        filename="log.txt",
+        filename="../log.txt",
         level=logging.INFO,
         format="%(asctime)s - %(message)s",
         datefmt="%m/%d/%Y %I:%M:%S %p"
