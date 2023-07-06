@@ -37,3 +37,31 @@ def test_convertjapanesecalendar_yearandmonthonly():
 def test_convertjapanesecalendar_reiwaonly():
     """元号のみ渡されている"""
     assert DateFormatter('令和2年').convert_japanese_calendar() is None
+
+def test_datesplit_starttoend():
+    """XXXX年XX月XX日〜XXXX年XX月XX日の値が辞書型のstart_dateとend_dateに分かれる"""
+    term_date = {
+        'start_date':datetime.datetime(2023,1,1),
+        'end_date':datetime.datetime(2023,1,31)
+    }
+    assert DateFormatter('2023年01月01日~2023年01月31日').date_split() == term_date
+
+def test_datesplit_startonly():
+    """開始日のみ入力"""
+    term_date = {
+        'start_date':datetime.datetime(2023,1,1),
+        'end_date':datetime.datetime(2000,1,1)
+    }
+    assert DateFormatter('2023年01月01日〜').date_split() == term_date
+
+def test_datesplit_endonly():
+    """終了日のみ入力"""
+    term_date = {
+    'start_date':datetime.datetime(2000,1,1),
+    'end_date':datetime.datetime(2023,1,31)
+    }
+    assert DateFormatter('~2023年01月31日').date_split() == term_date
+
+def test_datesplit_dateonly():
+    """~がない"""
+    assert DateFormatter('2023年01月31日').date_split() is None

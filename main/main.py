@@ -150,7 +150,15 @@ def parse_funding_source_detail(source_name,html,url):
         #JNET21補助金公募情報
 
         recruitment_period = soup.select_one("article div.section .HL-desc dd")
-        before_marge_date = date_split(recruitment_period)
+        # 融資情報で募集期間がない場合があるためNoneで弾く
+        # firestoreで設定している型の関係でNoneを受け付けないためとりあえずの値を入れる
+        if recruitment_period is None:
+            before_marge_date = {
+                "start_date":datetime.datetime(2000,1,1),
+                "end_date":datetime.datetime(2000,1,1)
+            }
+        else:
+            before_marge_date = DateFormatter(recruitment_period).date_split()
 
         before_add_data_to_firestore = {
             'industry':'',#業種
@@ -287,52 +295,6 @@ def source_of_page_clicked(url,xpath):
     driver.quit
 
     return source
-
-
-def date_split(recruitment_period):
-    """
-    波ダッシュで区切られた年月日をstart_dateとend_dateに分ける
-    Parameter:
-        recruitment_period String : 波ダッシュで区切られた年月日
-
-    Returns:
-        before_merge_date dict: 開始日と終了日
-    """
-    # 融資情報で募集期間がない場合があるためNoneで弾く
-    if recruitment_period == None:
-        return {
-            "start_date":datetime.datetime(2000,1,1),
-            "end_date":datetime.datetime(2000,1,1)
-        }
-
-    normalized_text = unicodedata.normalize("NFKC",recruitment_period.get_text())
-
-    # 取得先のサイトで開始日または終了日を「〜」で表現している
-    # 「〜」の位置で開始日か終了日を判定
-    repattern = re.compile(".*~$")
-    date_formatter = DateFormatter(normalized_text)
-    if normalized_text.find("~") == 0:
-        # 終了日だけ指定されているケース
-        before_marge_date ={
-            "start_date":datetime.datetime(2000,1,1),
-            "end_date":date_formatter.converted_datetime(),
-        }
-        return before_marge_date
-    elif normalized_text.find("~") == 11 and repattern.match(normalized_text):
-        # 開始日だけ指定されているケース
-        before_marge_date ={
-            "start_date":date_formatter.converted_datetime(),
-            "end_date":datetime.datetime(2000,1,1)
-        }
-        return before_marge_date
-
-    splited_date = normalized_text.split("~")
-    before_marge_date = {
-        "start_date":DateFormatter(splited_date[0]).converted_datetime(),
-        "end_date":DateFormatter(splited_date[len(splited_date)-1]).converted_datetime()
-    }
-
-    return before_marge_date
 
 def crawl_public_offering_list(source_url):
     """
