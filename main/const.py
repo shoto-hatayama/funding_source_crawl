@@ -7,15 +7,6 @@ MAFF_FINANCING = 'MAFF_FINANCING'
 MAFF_PUBLIC_OFFERING = 'MAFF_PUBLIC_OFFERING'
 JNET21_SUBSIDES_AND_FINANCING = "JNET21_SUBSIDES_AND_FINANCING"
 
-# 各年号の元年を定義
-ERADICT = {
-    "明治": 1868,
-    "大正": 1912,
-    "昭和": 1926,
-    "平成": 1989,
-    "令和": 2019,
-}
-
 # crawl_public_offering_listで使用する保存用のカラム名
 OFFERRING_COLLECTION_KEY = [
     'begin_date',

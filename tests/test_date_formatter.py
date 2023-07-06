@@ -21,3 +21,19 @@ def test_converteddatetime_monthonly():
 def test_converteddatetime_dayonly():
     """日だけ飲み渡されている"""
     assert DateFormatter('01日').converted_datetime() is None
+
+def test_convertjapanesecalendar():
+    """和暦がdatetimeに変換されている"""
+    assert DateFormatter('令和2年12月31日').convert_japanese_calendar() == datetime.datetime(2020,12,31)
+
+def test_convertjapanesecalendar_emnumber():
+    """全角の数字を渡してもdatetimeに変換される"""
+    assert DateFormatter('令和２年１２月３１日').convert_japanese_calendar() == datetime.datetime(2020,12,31)
+
+def test_convertjapanesecalendar_yearandmonthonly():
+    """年月のみ入力されている"""
+    assert DateFormatter('12月31日').convert_japanese_calendar() is None
+
+def test_convertjapanesecalendar_reiwaonly():
+    """元号のみ渡されている"""
+    assert DateFormatter('令和2年').convert_japanese_calendar() is None
