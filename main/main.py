@@ -17,6 +17,7 @@ import firebase_admin
 from firebase_admin import credentials
 from date_formatter import DateFormatter
 from firestore_connection import FirestoreConnection
+from firestore_collections_delete import FirestoreCollectionsDelete
 
 def parse_funding_source_list_page(html,source_name):
     """"
@@ -218,7 +219,7 @@ def crawl_funding_source_add(source_name,source_url,db):
     )
     logging.info("Start crawl")
     try:
-        deleted_collection(db,source_name)
+        FirestoreCollectionsDelete().all_clear()
         if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING,const.JNET21_SUBSIDES_AND_FINANCING]:
             funding_source_url_list = crawl_funding_source_list_page(source_name,source_url)
             for funding_source_url in funding_source_url_list:
@@ -234,19 +235,6 @@ def crawl_funding_source_add(source_name,source_url,db):
     except:
         logging.error("エラーが発生しました。",exc_info=True)
     logging.info("completed crawl!")
-
-def deleted_collection(db,collection_name):
-    """
-    指定した名前のコレクションを削除する
-
-    Parametrers:
-        db : firestoreの接続情報
-        collection_name string: コレクションの名前
-    """
-    collections = db.collection(collection_name).stream()
-    for collection in collections:
-        firestore_document = db.collection(collection_name).document(collection.id)
-        firestore_document.delete()
 
 def source_of_page_clicked(url,xpath):
     """
