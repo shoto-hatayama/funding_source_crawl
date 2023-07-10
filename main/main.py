@@ -16,18 +16,7 @@ from firebase_admin import firestore
 import firebase_admin
 from firebase_admin import credentials
 from date_formatter import DateFormatter
-
-
-def firestore_connection():
-    """
-    firestoreの接続設定
-    """
-
-    JSON_PATH = const.FIREBASE_JSON_NAME
-    cred = credentials.Certificate(JSON_PATH)
-    firebase_admin.initialize_app(cred)
-
-    return firestore.client().from_service_account_json(JSON_PATH)
+from firestore_connection import FirestoreConnection
 
 def parse_funding_source_list_page(html,source_name):
     """"
@@ -363,6 +352,6 @@ source_names = {
     const.JNET21_SUBSIDES_AND_FINANCING:"https://j-net21.smrj.go.jp/snavi/articles"
 }
 
-db = firestore_connection()
+db = FirestoreConnection().get_client()
 for source_name,source_url in source_names.items():
     crawl_funding_source_add(source_name,source_url,db)
