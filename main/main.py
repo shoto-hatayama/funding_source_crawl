@@ -18,6 +18,7 @@ from firebase_admin import credentials
 from date_formatter import DateFormatter
 from firestore_connection import FirestoreConnection
 from firestore_collections_delete import FirestoreCollectionsDelete
+from firestore_collections_save import FirestoreCollectionsSave
 
 def parse_funding_source_list_page(html,source_name):
     """"
@@ -225,13 +226,12 @@ def crawl_funding_source_add(source_name,source_url,db):
             for funding_source_url in funding_source_url_list:
                 funding_source_data = crawl_funding_source_list_detail(source_name,funding_source_url)
                 if not funding_source_data: continue
-                doc = db.collection(source_name)
-                doc.add(funding_source_data)
+                FirestoreCollectionsSave().add(funding_source_data,source_name)
+
         elif source_name == const.MAFF_PUBLIC_OFFERING:
             public_offering_list = crawl_public_offering_list(source_url)
             for public_offering_data in public_offering_list.values():
-                doc = db.collection(source_name)
-                doc.add(public_offering_data)
+                FirestoreCollectionsSave().add(public_offering_data,source_name)
     except:
         logging.error("エラーが発生しました。",exc_info=True)
     logging.info("completed crawl!")
