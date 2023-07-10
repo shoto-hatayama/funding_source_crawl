@@ -1,6 +1,4 @@
 import time
-import unicodedata
-import re
 import datetime
 from urllib.parse import urljoin
 import const
@@ -12,11 +10,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from requests_html import HTMLSession
-from firebase_admin import firestore
-import firebase_admin
-from firebase_admin import credentials
 from date_formatter import DateFormatter
-from firestore_connection import FirestoreConnection
 from firestore_collections_delete import FirestoreCollectionsDelete
 from firestore_collections_save import FirestoreCollectionsSave
 
@@ -202,7 +196,7 @@ def crawl_funding_source_list_detail(source_name,url):
     # HTMLからデータを取得する
     return parse_funding_source_detail(source_name,response.text,url)
 
-def crawl_funding_source_add(source_name,source_url,db):
+def crawl_funding_source_add(source_name,source_url):
     """
     各サイトの補助金・融資情報をfirestoreに保存する
 
@@ -340,6 +334,5 @@ source_names = {
     const.JNET21_SUBSIDES_AND_FINANCING:"https://j-net21.smrj.go.jp/snavi/articles"
 }
 
-db = FirestoreConnection().get_client()
 for source_name,source_url in source_names.items():
-    crawl_funding_source_add(source_name,source_url,db)
+    crawl_funding_source_add(source_name,source_url)
