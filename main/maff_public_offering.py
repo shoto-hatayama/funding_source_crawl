@@ -2,7 +2,7 @@
 import logging
 import time
 import datetime
-from main.date_formatter import DateFormatter
+from date_formatter import DateFormatter
 from bs4 import BeautifulSoup
 from requests_html import HTMLSession
 from urllib.parse import urljoin

@@ -6,6 +6,7 @@ import requests
 import logging
 from bs4 import BeautifulSoup
 import chromedriver_binary
+from maff_public_offering import MaffPublicOffering
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -223,11 +224,14 @@ def crawl_funding_source_add(source_name,source_url):
                 FirestoreCollectionsSave().add(funding_source_data,source_name)
 
         elif source_name == const.MAFF_PUBLIC_OFFERING:
-            public_offering_list = crawl_public_offering_list(source_url)
-            for public_offering_data in public_offering_list.values():
-                FirestoreCollectionsSave().add(public_offering_data,source_name)
-    except:
+            public_offering = MaffPublicOffering()
+            public_offering.make()
+
+            for add_data in public_offering.get_public_offering().values():
+                FirestoreCollectionsSave().add(add_data,source_name)
+    except Exception as err_msg:
         logging.error("エラーが発生しました。",exc_info=True)
+        logging.error(err_msg)
     logging.info("completed crawl!")
 
 def source_of_page_clicked(url,xpath):
@@ -266,66 +270,6 @@ def source_of_page_clicked(url,xpath):
     driver.quit
 
     return source
-
-def crawl_public_offering_list(source_url):
-    """
-     公募ページから開始日・終了日・公募名・urlを取得
-
-     Parameter
-     -----------
-     source_url
-        ページのURL
-    """
-
-    logging.info(f"Accessing TO {source_url}...")
-    session = HTMLSession()
-
-    response = session.get(source_url)
-
-    response.html.render()
-
-    time.sleep(8)
-
-    soup = BeautifulSoup(response.html.html,'html.parser')
-
-    base_url = "https://www.maff.go.jp/j/supply/hozyo/"
-
-    crawl_data = []
-    for tr in soup.select("table.datatable tbody tr"):
-
-        add_crawl_data ={}
-        index = 0
-        for val in tr.select("td"):
-
-            # frestore保存用の項目作成と和暦の変換
-            add_crawl_data[const.OFFERRING_COLLECTION_KEY[index]] = DateFormatter(val.text).convert_japanese_calendar()
-
-            # hrefが存在するタグの場合のみリンク作成
-            detail_link = val.select_one("td a[href]")
-            if detail_link :
-                # 公募詳細URLの作成
-                add_crawl_data['url'] = urljoin(base_url,detail_link['href'])
-
-            index +=1
-
-        # 空の配列を追加しない
-        if not add_crawl_data:
-            continue
-
-        # 辞書型の場合、階層作って保存が複雑になるため、list型に保存
-        crawl_data.append(add_crawl_data)
-
-    after_crawl_data = {}
-    for key,before_crawl_data in enumerate(crawl_data) :
-
-        # 不要な公募名の情報が取得されていれば処理を抜ける
-        if type(before_crawl_data['end_date']) is str: break
-
-        # 期限内のものだけ取得
-        if before_crawl_data["end_date"] > datetime.datetime.today():
-            after_crawl_data[key] = before_crawl_data
-
-    return after_crawl_data
 
 source_names = {
     const.MAFF_SUBSIDES:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab2&nen=A7&area=00",
