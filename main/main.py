@@ -14,6 +14,7 @@ from requests_html import HTMLSession
 from date_formatter import DateFormatter
 from firestore_collections_delete import FirestoreCollectionsDelete
 from firestore_collections_save import FirestoreCollectionsSave
+from html_source_getter import HtmlSourceGetter
 
 def parse_funding_source_list_page(html,source_name):
     """"
@@ -64,7 +65,8 @@ def crawl_funding_source_list_page(source_name,source_url):
             '//*[@id="categorySelect"]/div/label[1]',#「補助金・助成金・融資」
             '//*[@id="searchForm"]/div[9]/button[1]' #「検索実行」
         ]
-        page_source = source_of_page_clicked(source_url,click_target)
+        html_source_getter = HtmlSourceGetter(source_url)
+        page_source = html_source_getter.clicked_html(click_target)
     else:
         session = HTMLSession()
 
@@ -233,43 +235,6 @@ def crawl_funding_source_add(source_name,source_url):
         logging.error("エラーが発生しました。",exc_info=True)
         logging.error(err_msg)
     logging.info("completed crawl!")
-
-def source_of_page_clicked(url,xpath):
-    """
-     ページ内部の要素をクリック後、ソースを取得
-
-     Parametrers
-     -----------
-     url
-        ページのURL
-     xpath
-        対象要素のxpath
-    """
-
-    driver_path = 'chromedriver'
-    options = Options()
-    options.add_argument('--disable-gpu')#GPUハードウェアアクセラレーションを無効
-    options.add_argument('--disable-extensions')#全ての拡張機能を無効
-    options.add_argument('--proxy-server="direct://"')#プロキシ経由せず直接接続
-    options.add_argument('--proxy-bypass-list=*')#プロキシサーバー経由しない
-    options.add_argument('--start-maximized')#初期のウィンドウサイズ最大化
-    options.add_argument('--headless')#ヘッドレスモードで起動
-
-    driver = webdriver.Chrome(executable_path=driver_path,chrome_options=options)
-    driver.get(url)
-
-
-    # フォームの「補助金・助成金・融資」を選択
-    for val in xpath:
-        element = driver.find_element_by_xpath(val)
-        element.click()
-
-    source = driver.page_source
-    # ブラウザとウィンドウを共に閉じる
-    driver.close
-    driver.quit
-
-    return source
 
 source_names = {
     const.MAFF_SUBSIDES:"https://www.gyakubiki.maff.go.jp/appmaff/input/result.html?domain=M&tab=tab2&nen=A7&area=00",
