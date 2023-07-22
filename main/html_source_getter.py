@@ -1,6 +1,8 @@
 """seleniumを使ってページ内の対象をクリックする"""
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import NoSuchElementException
+import logging
 
 class HtmlSourceGetter:
     """クリックした対象のhtnlを取得する"""
@@ -21,10 +23,18 @@ class HtmlSourceGetter:
     def clicked_html(self,xpath: list):
         """クリックする順番をxpathで指定してhtmlを取得"""
 
-        # フォームの「補助金・助成金・融資」を選択
-        for val in xpath:
-            element = self.__driver.find_element_by_xpath(val)
-            element.click()
+        try:
+            # フォームの「補助金・助成金・融資」を選択
+            for val in xpath:
+                element = self.__driver.find_element_by_xpath(val)
+                element.click()
+        except NoSuchElementException as error_msg:
+            print(error_msg)
+            logging.error(error_msg)
+
+            self.__driver.close()
+            self.__driver.quit()
+            return
 
         source = self.__driver.page_source
 
