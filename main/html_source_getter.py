@@ -34,7 +34,7 @@ class HtmlSourceGetter:
 
             self.__driver.close()
             self.__driver.quit()
-            return
+            return ""
 
         source = self.__driver.page_source
 
