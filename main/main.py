@@ -50,6 +50,8 @@ def parse_funding_source_list_page(html,source_name):
         'funding_source_url_list': [a["href"]for a in soup.select(selector)],
         'next_page_link': next_page_link["href"] if next_page_link else None
     }
+from url_list_generator import UrlListGenerator
+from jnet21_article_detail import Jnet21ArticleDetail
 
 def crawl_funding_source_list_page(source_name,source_url):
     """"
@@ -256,6 +258,7 @@ def main():
     FirestoreCollectionsDelete().all_clear()
 
     exec_public_offerring()
+    exec_jnet21()
 
 def exec_public_offerring():
     """農林水産省の公募取得用関数"""
@@ -272,6 +275,42 @@ def exec_public_offerring():
         logging.error(traceback.format_exc())
         sys.exit()
 
+def exec_jnet21():
+    """jnet21の補助金・融資取得用関数"""
+    logging.info("Jnet21から補助金・融資内容を取得する処理を開始します。")
+    collection_name = "JNET21_SUBSIDES_AND_FINANCING"
+    click_target = [
+            '//*[@id="categorySelect"]/div/label[1]',#「補助金・助成金・融資」
+            '//*[@id="searchForm"]/div[9]/button[1]' #「検索実行」
+        ]
+    source_url = "https://j-net21.smrj.go.jp/snavi/articles"
+    base_url = 'https://j-net21.smrj.go.jp'
+    url_selector = 'main#contents article div.HL-result ul.HL-resultList li div.title-meta > a'
+    next_url_selector = 'div.HL-result .HL-pagenation .nextBox li > a[href]'
+
+    try:
+        html_source_getter = HtmlSourceGetter(source_url)
+        page_source = html_source_getter.clicked_html(click_target)
+
+        url_list_generator = UrlListGenerator()
+        url_list_generator.make(page_source,url_selector,base_url)
+        url_list_generator.set_next_url(page_source,next_url_selector,base_url)
+        while url_list_generator.get_next_url():
+            time.sleep(8)
+            source = requests.get(url_list_generator.get_next_url()).text
+            url_list_generator.make(source,"main#contents article div.HL-result ul.HL-resultList li div.title-meta > a")
+            url_list_generator.set_next_url(page_source,"div.HL-result .HL-pagenation .nextBox li > a[href]",'https://j-net21.smrj.go.jp')
+
+        article_detail = Jnet21ArticleDetail()
+        for article_url in url_list_generator.get_url_list():
+            article_detail.set_source(article_url)
+            if article_detail.is_not_source():
+                continue
+            article_detail.retrive_article()
+            FirestoreCollectionsSave().add(article_detail.get_article(),collection_name)
+        logging.info("処理が正常に終了しました。")
+    except Exception:
+        logging.error(traceback.format_exc())
 
 if __name__ == "__main__":
     main()
