@@ -29,7 +29,6 @@ class MaffPublicOffering:
 
     def make(self):
         """農林水産省のサイトにアクセスし、取得した値をdict型で格納"""
-        time.sleep(8)
 
         soup = BeautifulSoup(self.__response.html.html,'html.parser')
         tbody = soup.select_one("table.datatable tbody")
