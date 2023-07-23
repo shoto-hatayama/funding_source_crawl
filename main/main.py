@@ -4,8 +4,11 @@ from urllib.parse import urljoin
 import const
 import requests
 import logging
+import os
+import traceback
 from bs4 import BeautifulSoup
 import chromedriver_binary
+import sys
 from maff_public_offering import MaffPublicOffering
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -242,6 +245,33 @@ source_names = {
     const.MAFF_PUBLIC_OFFERING:"https://www.maff.go.jp/j/supply/hozyo/",
     const.JNET21_SUBSIDES_AND_FINANCING:"https://j-net21.smrj.go.jp/snavi/articles"
 }
+def main():
+    logging.basicConfig(
+        filename="./log.txt",
+        level=logging.INFO,
+        format="%(asctime)s - %(message)s",
+        datefmt="%m/%d/%Y %I:%M:%S %p"
+    )
 
-for source_name,source_url in source_names.items():
-    crawl_funding_source_add(source_name,source_url)
+    FirestoreCollectionsDelete().all_clear()
+
+    exec_public_offerring()
+
+def exec_public_offerring():
+    """農林水産省の公募取得用関数"""
+    logging.info("農林水産省から公募内容を取得する処理を開始します。")
+    collection_name = "MAFF_PUBLIC_OFFERING"
+    try:
+        public_offering = MaffPublicOffering()
+        public_offering.make()
+
+        for val in public_offering.get_public_offering().values():
+            FirestoreCollectionsSave().add(val,collection_name)
+        logging.info("処理が正常に終了しました。")
+    except Exception:
+        logging.error(traceback.format_exc())
+        sys.exit()
+
+
+if __name__ == "__main__":
+    main()
