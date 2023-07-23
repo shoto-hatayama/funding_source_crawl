@@ -1,6 +1,5 @@
 """公募情報のクロール"""
 import logging
-import time
 import datetime
 from date_formatter import DateFormatter
 from bs4 import BeautifulSoup
