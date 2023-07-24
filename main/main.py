@@ -121,6 +121,7 @@ def exec_jnet21():
         logging.info("処理が正常に終了しました。")
     except Exception:
         logging.error(traceback.format_exc())
+        sys.exit()
 
 if __name__ == "__main__":
     main()
