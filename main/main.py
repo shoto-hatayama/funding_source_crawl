@@ -1,5 +1,4 @@
 import time
-import const
 import requests
 import logging
 import traceback
@@ -7,7 +6,6 @@ from requests_html import HTMLSession
 from bs4 import BeautifulSoup
 import sys
 from maff_public_offering import MaffPublicOffering
-from date_formatter import DateFormatter
 from firestore_collections_delete import FirestoreCollectionsDelete
 from firestore_collections_save import FirestoreCollectionsSave
 from html_source_getter import HtmlSourceGetter
@@ -15,50 +13,6 @@ from url_list_generator import UrlListGenerator
 from jnet21_article_detail import Jnet21ArticleDetail
 from maff_subsides_article_detail import MaffSubsidesArticleDetail
 from maff_financing_article_detail import MaffFinancingArticleDetail
-
-def parse_funding_source_detail(source_name,html,url):
-    """
-    詳細ページの情報を取得する
-
-    Parameters
-    -----------
-    html:string
-        詳細ページのhtml
-    url:string
-        詳細ページのURL
-    """
-
-    soup = BeautifulSoup(html,'html.parser')
-
-    #TODO:関数を作成し処理を外に出すか検討
-    if source_name in [const.MAFF_SUBSIDES,const.MAFF_FINANCING]:
-        selector = ".content p"
-        content = soup.select(selector)
-
-
-    if source_name == const.MAFF_SUBSIDES:
-        # 農林水産省補助金情報
-        return {
-            'title': soup.select_one(".content h1").get_text(),#補助金名
-            'outline':soup.select_one(".content .datatable tbody tr td").get_text(),#概要
-            'season':content[0].get_text(),#公募時期
-            'rate':content[1].get_text(),#補助率
-            'target':content[2].get_text(),#対象者
-            'remarks':content[3].get_text(),#備考
-            'url':url
-        }
-    elif source_name == const.MAFF_FINANCING:
-        # 農林水産省融資情報
-        return {
-            'title': soup.select_one(".content h1").get_text(),#融資名
-            'outline':soup.select_one(".content .datatable tbody tr td").get_text(),#概要
-            'target': content[0].get_text(),#公募時期,
-            'interest': content[1].get_text(),#公募時期,
-            'borrowing_limit': content[2].get_text(),#公募時期,
-            'term_of_redemption':content[3].get_text(),#公募時期:
-            'remarks': content[4].get_text(),#公募時期,
-            'url':url
-        }
 
 def main():
     logging.basicConfig(
