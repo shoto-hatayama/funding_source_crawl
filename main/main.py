@@ -72,6 +72,8 @@ def main():
 
     exec_public_offerring()
     exec_jnet21()
+    exec_maff_subsidy()
+    exec_maff_financing()
 
 def exec_public_offerring():
     """農林水産省の公募取得用関数"""
