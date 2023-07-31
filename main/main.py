@@ -69,7 +69,7 @@ def exec_jnet21():
             logging.info(f"Accessing to {url_list_generator.get_next_url()}")
             source = requests.get(url_list_generator.get_next_url()).text
             url_list_generator.make(source,"main#contents article div.HL-result ul.HL-resultList li div.title-meta > a")
-            url_list_generator.set_next_url(page_source,"div.HL-result .HL-pagenation .nextBox li > a[href]",'https://j-net21.smrj.go.jp')
+            url_list_generator.set_next_url(source,"div.HL-result .HL-pagenation .nextBox li > a[href]",'https://j-net21.smrj.go.jp')
 
         article_detail = Jnet21ArticleDetail()
         for article_url in url_list_generator.get_url_list():
