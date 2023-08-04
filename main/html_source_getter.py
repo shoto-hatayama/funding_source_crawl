@@ -28,18 +28,10 @@ class HtmlSourceGetter:
             for val in xpath:
                 element = self.__driver.find_element_by_xpath(val)
                 element.click()
+
+            return self.__driver.page_source
         except NoSuchElementException as error_msg:
             print(error_msg)
             logging.error(error_msg)
-
-            self.__driver.close()
+        finally:
             self.__driver.quit()
-            return ""
-
-        source = self.__driver.page_source
-
-        # ブラウザとウィンドウを共に閉じる
-        self.__driver.close()
-        self.__driver.quit()
-
-        return source
