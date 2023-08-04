@@ -33,7 +33,10 @@ class UrlListGenerator:
         if base_url and next_url:
             self.__next_url = urljoin(base_url,next_url['href'])
         else:
-            self.__next_url = next_url['href']
+            try:
+                self.__next_url = next_url['href']
+            except TypeError:
+                self.__next_url = ""
 
 
     def get_next_url(self):
