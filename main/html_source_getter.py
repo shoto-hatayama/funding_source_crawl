@@ -2,6 +2,9 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import logging
 
 class HtmlSourceGetter:
@@ -20,7 +23,7 @@ class HtmlSourceGetter:
         self.__driver = webdriver.Chrome(executable_path=self.__driver_path,chrome_options=options)
         self.__driver.get(url)
 
-    def clicked_html(self,xpath: list):
+    def clicked_html(self,xpath: list,wait_tag = "body"):
         """クリックする順番をxpathで指定してhtmlを取得"""
 
         try:
@@ -29,6 +32,10 @@ class HtmlSourceGetter:
                 element = self.__driver.find_element_by_xpath(val)
                 element.click()
 
+            # 取得先のページが非同期のため、要素が取得できる状態になるまで待つ
+            WebDriverWait(self.__driver,10).until(
+                EC.presence_of_element_located((By.TAG_NAME,"body"))
+            )
             return self.__driver.page_source
         except NoSuchElementException as error_msg:
             print(error_msg)
